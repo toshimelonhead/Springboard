@@ -25,14 +25,14 @@ exploring the data, and getting acquainted with the 3 tables. */
 /* Q1: Some of the facilities charge a fee to members, but some do not.
 Please list the names of the facilities that do. */
 
-SELECT `name`
-FROM  `country_club`.`Facilities` 
+SELECT name
+FROM  country_club.Facilities 
 WHERE membercost > 0
 
 /* Q2: How many facilities do not charge a fee to members? */
 
-SELECT count(`Name`)
-FROM  `country_club`.`Facilities` 
+SELECT count(Name)
+FROM  country_club.Facilities 
 WHERE membercost = 0
 
 /* Q3: How can you produce a list of facilities that charge a fee to members,
@@ -41,14 +41,14 @@ Return the facid, facility name, member cost, and monthly maintenance of the
 facilities in question. */
 
 SELECT facid, name, membercost, monthlymaintenance
-FROM `country_club`.`Facilities`
+FROM country_club.Facilities
 WHERE membercost < monthlymaintenance * .2
 
 /* Q4: How can you retrieve the details of facilities with ID 1 and 5?
 Write the query without using the OR operator. */
 
 SELECT *
-From `country_club`.`Facilities`
+From country_club.Facilities
 WHERE facid in (1, 5)
 
 /* Q5: How can you produce a list of facilities, with each labelled as
@@ -61,28 +61,28 @@ CASE WHEN monthlymaintenance <100
 THEN  'CHEAP'
 ELSE  'EXPENSIVE'
 END AS  'COST'
-FROM  `country_club`.`Facilities` 
+FROM  country_club.Facilities 
 
 /* Q6: You'd like to get the first and last name of the last member(s)
 who signed up. Do not use the LIMIT clause for your solution. */
 
-SELECT  `firstname`, 
-        `surname`, 
-        MAX(`joindate`) 
-FROM `country_club`.`Members`
+SELECT  firstname, 
+        surname, 
+        MAX(joindate) 
+FROM country_club.Members
 
 /* Q7: How can you produce a list of all members who have used a tennis court?
 Include in your output the name of the court, and the name of the member
 formatted as a single column. Ensure no duplicate data, and order by
 the member name. */
 
-SELECT `facid`, `m`.`memid`, concat(`firstname`,' ', `surname`) as `name`
-FROM `Bookings` as `b`
-INNER JOIN `Members` as `m`
-ON `b`.`memid` = `m`.`memid`
-WHERE `facid` in (0, 1) and `m`.`memid` <> 0
-GROUP BY `m`.`memid`, `name` 
-ORDER BY `name`
+SELECT facid, m.memid, concat(firstname,' ', surname) as name
+FROM Bookings as b
+INNER JOIN Members as m
+ON b.memid = m.memid
+WHERE facid in (0, 1) and m.memid <> 0
+GROUP BY m.memid, name 
+ORDER BY name
 
 /* Q8: How can you produce a list of bookings on the day of 2012-09-14 which
 will cost the member (or guest) more than $30? Remember that guests have
@@ -91,10 +91,37 @@ the guest user's ID is always 0. Include in your output the name of the
 facility, the name of the member formatted as a single column, and the cost.
 Order by descending cost, and do not use any subqueries. */
 
+select f.name, (case when m.memid = 0 then f.guestcost * b.slots else f.membercost * b.slots end) as cost, concat(m.firstname, " ", m.surname) as name 
+from Bookings as b 
+join Facilities as f on f.facid = b.facid 
+join Members as m on m.memid = b.memid 
+where (case when m.memid = 0 then f.guestcost * b.slots else f.membercost * b.slots end) > 30
+and b.starttime like '2012-09-14%'
+order by cost desc
 
 /* Q9: This time, produce the same result as in Q8, but using a subquery. */
 
+/* Extra column in member ID */
+
+select * from 
+(select f.name as facilityname, m.memid, (case when m.memid = 0 then f.guestcost * b.slots else  f.membercost * b.slots end) as cost, concat(m.firstname, " ", m.surname) as name, b.starttime  
+from Bookings as b 
+join Facilities as f on f.facid = b.facid 
+join Members as m on m.memid = b.memid ) as A
+where cost > 30 
+and A.starttime like '2012-09-14%'
+order by cost desc
 
 /* Q10: Produce a list of facilities with a total revenue less than 1000.
 The output of facility name and total revenue, sorted by revenue. Remember
 that there's a different cost for guests and members! */
+
+SELECT * FROM
+(SELECT f.name, sum(case when m.memid = 0 then f.guestcost * b.slots else f.membercost * b.slots end) as revenue
+from Facilities as f
+join Bookings as b on f.facid = b.facid
+join Members as m on b.memid = m.memid
+GROUP by f.facid
+ORDER by revenue desc) as lowrevenue
+where revenue < 1000
+
